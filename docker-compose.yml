@@ -15,5 +15,11 @@ services:
       timeout: 2s
       retries: 15
 
+  mailcatcher:
+    image: schickling/mailcatcher
+    ports:
+      - "1080:1080" # web UI to read caught OTP mail
+      - "1025:1025" # SMTP_ADDR default points here
+
 volumes:
   pgdata:
