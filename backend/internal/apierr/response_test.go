@@ -1,4 +1,4 @@
-package httpapi_test
+package apierr_test
 
 import (
 	"encoding/json"
@@ -6,13 +6,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"needtobuy/internal/httpapi"
+	"needtobuy/internal/apierr"
 )
 
 func TestWriteJSON(t *testing.T) {
 	rec := httptest.NewRecorder()
 
-	httpapi.WriteJSON(rec, http.StatusCreated, map[string]string{"status": "ok"})
+	apierr.WriteJSON(rec, http.StatusCreated, map[string]string{"status": "ok"})
 
 	if rec.Code != http.StatusCreated {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusCreated)
@@ -33,7 +33,7 @@ func TestWriteJSON(t *testing.T) {
 func TestWriteError(t *testing.T) {
 	rec := httptest.NewRecorder()
 
-	httpapi.WriteError(rec, httpapi.NotFound("child"))
+	apierr.WriteError(rec, apierr.NotFound("child"))
 
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)

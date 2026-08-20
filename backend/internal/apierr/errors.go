@@ -1,6 +1,7 @@
-// Package httpapi holds the HTTP router, middleware, and response
-// helpers shared by every domain handler.
-package httpapi
+// Package apierr defines the JSON error envelope shared by every HTTP
+// handler package. It has no internal dependencies so both httpapi and
+// domain packages like auth can import it without creating a cycle.
+package apierr
 
 import "net/http"
 

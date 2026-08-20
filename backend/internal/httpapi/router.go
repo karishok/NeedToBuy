@@ -6,6 +6,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jmoiron/sqlx"
+
+	"needtobuy/internal/apierr"
 )
 
 // NewRouter builds the top-level chi router. database is used by the
@@ -24,9 +26,9 @@ func NewRouter(database *sqlx.DB) http.Handler {
 func healthHandler(database *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := database.PingContext(r.Context()); err != nil {
-			WriteError(w, Internal("database unavailable"))
+			apierr.WriteError(w, apierr.Internal("database unavailable"))
 			return
 		}
-		WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		apierr.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}
 }
