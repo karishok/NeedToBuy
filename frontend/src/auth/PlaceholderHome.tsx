@@ -13,12 +13,14 @@ export function PlaceholderHome() {
   }
 
   return (
-    <Card kicker="Нужняшки">
-      <h3>Вы вошли как {email}</h3>
-      <p>Вишлист и профиль ребёнка появятся здесь в следующих срезах.</p>
-      <Button variant="secondary" onClick={handleLogout}>
-        Выйти
-      </Button>
-    </Card>
+    <div className="page">
+      <Card kicker="Нужняшки" className="login-card">
+        <h3 className="card-title">Вы вошли как {email}</h3>
+        <p className="card-body">Вишлист и профиль ребёнка появятся здесь в следующих срезах.</p>
+        <Button variant="secondary" onClick={handleLogout}>
+          Выйти
+        </Button>
+      </Card>
+    </div>
   )
 }

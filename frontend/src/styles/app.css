@@ -3,3 +3,16 @@
   font-size: 13px;
   margin: 0 0 var(--space-2);
 }
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+}
+
+.login-card {
+  width: 380px;
+  max-width: 100%;
+}
