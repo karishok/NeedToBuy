@@ -21,5 +21,11 @@ type errorEnvelope struct {
 
 // WriteError writes err as the standard {"error": {...}} JSON envelope.
 func WriteError(w http.ResponseWriter, err *Error) {
+	if err == nil {
+		err = Internal("internal server error")
+	}
+	if err.HTTPStatus < 100 {
+		err.HTTPStatus = http.StatusInternalServerError
+	}
 	WriteJSON(w, err.HTTPStatus, errorEnvelope{Error: err})
 }

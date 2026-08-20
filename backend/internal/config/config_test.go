@@ -7,6 +7,9 @@ import (
 )
 
 func TestLoad_Defaults(t *testing.T) {
+	t.Setenv("DATABASE_URL", "")
+	t.Setenv("PORT", "")
+
 	cfg := config.Load()
 
 	want := "postgres://needtobuy:needtobuy@localhost:5432/needtobuy?sslmode=disable"

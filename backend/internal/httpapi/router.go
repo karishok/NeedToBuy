@@ -13,8 +13,8 @@ import (
 // own routes on the returned handler in later plans.
 func NewRouter(database *sqlx.DB) http.Handler {
 	r := chi.NewRouter()
-	r.Use(middleware.Recoverer)
 	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
 
 	r.Get("/healthz", healthHandler(database))
 
