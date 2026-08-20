@@ -185,3 +185,46 @@ func TestLogout_ClearsCookieAndInvalidatesSession(t *testing.T) {
 		t.Fatalf("after logout: status = %d, want %d", rec.Code, http.StatusUnauthorized)
 	}
 }
+
+func TestMe_NoCookie_Unauthorized(t *testing.T) {
+	h, _ := newTestHandler(t)
+	protected := h.Middleware(RequireAuth(http.HandlerFunc(h.Me)))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
+	rec := httptest.NewRecorder()
+	protected.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestMe_ValidSession_ReturnsEmail(t *testing.T) {
+	h, mailer := newTestHandler(t)
+	protected := h.Middleware(RequireAuth(http.HandlerFunc(h.Me)))
+
+	reqReq := httptest.NewRequest(http.MethodPost, "/api/auth/otp/request",
+		strings.NewReader(`{"email":"parent@example.com"}`))
+	h.RequestOTP(httptest.NewRecorder(), reqReq)
+	verifyBody := `{"email":"parent@example.com","code":"` + mailer.lastCode + `"}`
+	verifyReq := httptest.NewRequest(http.MethodPost, "/api/auth/otp/verify", strings.NewReader(verifyBody))
+	verifyRec := httptest.NewRecorder()
+	h.VerifyOTP(verifyRec, verifyReq)
+	sessionCookieValue := verifyRec.Result().Cookies()[0]
+
+	meReq := httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
+	meReq.AddCookie(sessionCookieValue)
+	meRec := httptest.NewRecorder()
+	protected.ServeHTTP(meRec, meReq)
+
+	if meRec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body = %s", meRec.Code, http.StatusOK, meRec.Body.String())
+	}
+	var body map[string]string
+	if err := json.Unmarshal(meRec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal body: %v", err)
+	}
+	if body["email"] != "parent@example.com" {
+		t.Fatalf(`email = %q, want "parent@example.com"`, body["email"])
+	}
+}

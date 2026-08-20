@@ -128,6 +128,23 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	apierr.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+// Me handles GET /api/auth/me. It must be registered behind RequireAuth —
+// it reports 401 defensively if that invariant is ever violated.
+func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
+	userID, ok := UserID(r.Context())
+	if !ok {
+		apierr.WriteError(w, unauthorized("login required"))
+		return
+	}
+	email, err := emailByUserID(r.Context(), h.db, userID)
+	if err != nil {
+		log.Printf("auth: lookup email for user %d: %v", userID, err)
+		apierr.WriteError(w, apierr.Internal("could not load account"))
+		return
+	}
+	apierr.WriteJSON(w, http.StatusOK, map[string]string{"email": email})
+}
+
 // Middleware loads the session cookie, if any, and stores the parent's user
 // id in the request context for downstream handlers to read via UserID. It
 // never rejects a request itself — wrap routes that require login in

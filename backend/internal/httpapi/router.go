@@ -27,6 +27,7 @@ func NewRouter(database *sqlx.DB, authHandler *auth.Handler) http.Handler {
 	r.Post("/api/auth/otp/request", authHandler.RequestOTP)
 	r.Post("/api/auth/otp/verify", authHandler.VerifyOTP)
 	r.Post("/api/auth/logout", authHandler.Logout)
+	r.With(auth.RequireAuth).Get("/api/auth/me", authHandler.Me)
 
 	return r
 }
