@@ -53,3 +53,13 @@ describe('me', () => {
     await expect(me()).rejects.toMatchObject({ status: 401 })
   })
 })
+
+describe('network errors', () => {
+  it('propagates a rejected fetch instead of swallowing it', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
+    )
+    await expect(me()).rejects.toThrow('Failed to fetch')
+  })
+})
