@@ -1,3 +1,4 @@
+// Package httpapi implements the top-level HTTP router and health check.
 package httpapi
 
 import (
