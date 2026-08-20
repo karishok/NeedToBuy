@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	"needtobuy/internal/auth"
 	"needtobuy/internal/db"
 	"needtobuy/internal/dbtest"
@@ -69,6 +71,40 @@ func TestAuthFlow_RequestVerifyLogout_EndToEnd(t *testing.T) {
 	}
 	sessionCookie := cookies[0]
 
+	chiRouter, ok := router.(chi.Router)
+	if !ok {
+		t.Fatal("httpapi.NewRouter did not return a chi.Router; cannot register a probe route")
+	}
+	chiRouter.Get("/test/whoami", auth.RequireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userID, _ := auth.UserID(r.Context())
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]int64{"user_id": userID})
+	})).ServeHTTP)
+
+	// No cookie at all: RequireAuth must reject.
+	noCookieReq := httptest.NewRequest(http.MethodGet, "/test/whoami", nil)
+	noCookieRec := httptest.NewRecorder()
+	router.ServeHTTP(noCookieRec, noCookieReq)
+	if noCookieRec.Code != http.StatusUnauthorized {
+		t.Fatalf("whoami without cookie: status = %d, want %d", noCookieRec.Code, http.StatusUnauthorized)
+	}
+
+	// With the real session cookie: Middleware must have attached the user id.
+	whoamiReq := httptest.NewRequest(http.MethodGet, "/test/whoami", nil)
+	whoamiReq.AddCookie(sessionCookie)
+	whoamiRec := httptest.NewRecorder()
+	router.ServeHTTP(whoamiRec, whoamiReq)
+	if whoamiRec.Code != http.StatusOK {
+		t.Fatalf("whoami with cookie: status = %d, body = %s", whoamiRec.Code, whoamiRec.Body.String())
+	}
+	var whoami map[string]int64
+	if err := json.Unmarshal(whoamiRec.Body.Bytes(), &whoami); err != nil {
+		t.Fatalf("unmarshal whoami body: %v", err)
+	}
+	if whoami["user_id"] == 0 {
+		t.Fatal("whoami with cookie: user_id = 0, want the authenticated parent's id")
+	}
+
 	healthReq := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	healthReq.AddCookie(sessionCookie)
 	healthRec := httptest.NewRecorder()
@@ -90,5 +126,14 @@ func TestAuthFlow_RequestVerifyLogout_EndToEnd(t *testing.T) {
 	router.ServeHTTP(logoutRec, logoutReq)
 	if logoutRec.Code != http.StatusOK {
 		t.Fatalf("logout: status = %d, body = %s", logoutRec.Code, logoutRec.Body.String())
+	}
+
+	// Same session cookie after logout: the session must be revoked.
+	postLogoutReq := httptest.NewRequest(http.MethodGet, "/test/whoami", nil)
+	postLogoutReq.AddCookie(sessionCookie)
+	postLogoutRec := httptest.NewRecorder()
+	router.ServeHTTP(postLogoutRec, postLogoutReq)
+	if postLogoutRec.Code != http.StatusUnauthorized {
+		t.Fatalf("whoami after logout: status = %d, want %d", postLogoutRec.Code, http.StatusUnauthorized)
 	}
 }
