@@ -54,11 +54,11 @@ func hashCode(code, email, pepper string) string {
 
 // createOTP enforces the resend cooldown, then inserts a new OTP code row
 // for email and returns the plaintext code to send by mail.
-func createOTP(ctx context.Context, db querier, pepper, email string) (string, error) {
+func createOTP(ctx context.Context, db Querier, pepper, email string) (string, error) {
 	var last otpCode
 	err := db.GetContext(ctx, &last, `
 		SELECT id, email, code_hash, attempts, expires_at, consumed_at, created_at
-		FROM otp_codes WHERE email = $1 ORDER BY created_at DESC LIMIT 1`, email)
+		FROM otp_codes WHERE email = $1 ORDER BY created_at DESC, id DESC LIMIT 1`, email)
 	if err == nil && time.Since(last.CreatedAt) < otpResendCooldown {
 		return "", errTooSoon
 	}
@@ -83,13 +83,13 @@ func createOTP(ctx context.Context, db querier, pepper, email string) (string, e
 // otpMaxAttempts, or the code has expired, every subsequent call returns
 // errInvalidCode regardless of what code is submitted. On success the code
 // is marked consumed so it cannot be replayed.
-func verifyOTP(ctx context.Context, db querier, pepper, email, code string) error {
+func verifyOTP(ctx context.Context, db Querier, pepper, email, code string) error {
 	var row otpCode
 	err := db.GetContext(ctx, &row, `
 		SELECT id, email, code_hash, attempts, expires_at, consumed_at, created_at
 		FROM otp_codes
 		WHERE email = $1 AND consumed_at IS NULL
-		ORDER BY created_at DESC LIMIT 1`, email)
+		ORDER BY created_at DESC, id DESC LIMIT 1`, email)
 	if errors.Is(err, sql.ErrNoRows) {
 		return errInvalidCode
 	}
@@ -112,6 +112,20 @@ func verifyOTP(ctx context.Context, db querier, pepper, email, code string) erro
 	if _, err := db.ExecContext(ctx,
 		`UPDATE otp_codes SET consumed_at = now() WHERE id = $1`, row.ID); err != nil {
 		return fmt.Errorf("auth: consume otp: %w", err)
+	}
+	return nil
+}
+
+// deleteOTP removes the most recently created otp_codes row for email. It
+// undoes createOTP's insert when the mail carrying the code failed to
+// send, so the resend cooldown doesn't lock the user out for a code that
+// never reached them.
+func deleteOTP(ctx context.Context, db Querier, email string) error {
+	if _, err := db.ExecContext(ctx, `
+		DELETE FROM otp_codes WHERE id = (
+			SELECT id FROM otp_codes WHERE email = $1 ORDER BY created_at DESC, id DESC LIMIT 1
+		)`, email); err != nil {
+		return fmt.Errorf("auth: delete otp: %w", err)
 	}
 	return nil
 }

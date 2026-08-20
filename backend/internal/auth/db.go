@@ -8,10 +8,12 @@ import (
 	"database/sql"
 )
 
-// querier is satisfied by both *sqlx.DB and *sqlx.Tx, so repository
+// Querier is satisfied by both *sqlx.DB and *sqlx.Tx, so repository
 // functions in this package run unchanged against a live connection in
-// production and inside a rollback transaction in tests.
-type querier interface {
+// production and inside a rollback transaction in tests. It is exported
+// so wrapper/decorator packages (logging, metrics) can reference it, e.g.
+// to implement it themselves or assert `var _ auth.Querier = someType{}`.
+type Querier interface {
 	GetContext(ctx context.Context, dest any, query string, args ...any) error
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }

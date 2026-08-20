@@ -39,7 +39,7 @@ func generateSessionID() (string, error) {
 }
 
 // createSession opens a new session for userID and returns its id.
-func createSession(ctx context.Context, db querier, userID int64) (string, error) {
+func createSession(ctx context.Context, db Querier, userID int64) (string, error) {
 	id, err := generateSessionID()
 	if err != nil {
 		return "", err
@@ -55,7 +55,7 @@ func createSession(ctx context.Context, db querier, userID int64) (string, error
 // lookupSession returns the user id for a live session, sliding its
 // expiry forward by sessionTTL. ok is false if the session is missing or
 // has expired.
-func lookupSession(ctx context.Context, db querier, sessionID string) (int64, bool, error) {
+func lookupSession(ctx context.Context, db Querier, sessionID string) (int64, bool, error) {
 	var row struct {
 		UserID    int64     `db:"user_id"`
 		ExpiresAt time.Time `db:"expires_at"`
@@ -79,7 +79,7 @@ func lookupSession(ctx context.Context, db querier, sessionID string) (int64, bo
 }
 
 // deleteSession removes a session row (used by logout).
-func deleteSession(ctx context.Context, db querier, sessionID string) error {
+func deleteSession(ctx context.Context, db Querier, sessionID string) error {
 	if _, err := db.ExecContext(ctx, `DELETE FROM sessions WHERE id = $1`, sessionID); err != nil {
 		return fmt.Errorf("auth: delete session: %w", err)
 	}

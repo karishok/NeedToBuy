@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -13,14 +14,14 @@ import (
 // Handler wires the OTP and session HTTP endpoints to a database and
 // mailer.
 type Handler struct {
-	DB     querier
-	Mailer Mailer
-	Pepper string
+	db     Querier
+	mailer Mailer
+	pepper string
 }
 
 // NewHandler builds a Handler ready to register on a router.
-func NewHandler(database querier, mailer Mailer, pepper string) *Handler {
-	return &Handler{DB: database, Mailer: mailer, Pepper: pepper}
+func NewHandler(database Querier, mailer Mailer, pepper string) *Handler {
+	return &Handler{db: database, mailer: mailer, pepper: pepper}
 }
 
 type requestOTPBody struct {
@@ -40,17 +41,22 @@ func (h *Handler) RequestOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	code, err := createOTP(r.Context(), h.DB, h.Pepper, email)
+	code, err := createOTP(r.Context(), h.db, h.pepper, email)
 	if errors.Is(err, errTooSoon) {
 		apierr.WriteError(w, tooManyRequests("code already sent, try again shortly"))
 		return
 	}
 	if err != nil {
+		log.Printf("auth: create otp for %s: %v", email, err)
 		apierr.WriteError(w, apierr.Internal("could not create code"))
 		return
 	}
 
-	if err := h.Mailer.SendOTP(r.Context(), email, code); err != nil {
+	if err := h.mailer.SendOTP(r.Context(), email, code); err != nil {
+		log.Printf("auth: send otp mail to %s: %v", email, err)
+		if delErr := deleteOTP(r.Context(), h.db, email); delErr != nil {
+			log.Printf("auth: cleanup otp after failed send for %s: %v", email, delErr)
+		}
 		apierr.WriteError(w, apierr.Internal("could not send code"))
 		return
 	}
@@ -64,6 +70,14 @@ type verifyOTPBody struct {
 }
 
 // VerifyOTP handles POST /api/auth/otp/verify.
+//
+// The code-consume, user-upsert, and session-create steps below are three
+// separate statements, not one transaction — Querier only exposes
+// GetContext/ExecContext, not a way to begin one (see db.go). If
+// upsertUser or createSession fails after verifyOTP has already consumed
+// the code, the code is unrecoverably burned and the caller must request
+// a new one. Accepted for this MVP slice; revisit if this becomes a real
+// support burden.
 func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 	var body verifyOTPBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -76,24 +90,27 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := verifyOTP(r.Context(), h.DB, h.Pepper, email, body.Code)
+	err := verifyOTP(r.Context(), h.db, h.pepper, email, body.Code)
 	if errors.Is(err, errInvalidCode) {
 		apierr.WriteError(w, apierr.BadRequest("invalid or expired code"))
 		return
 	}
 	if err != nil {
+		log.Printf("auth: verify otp for %s: %v", email, err)
 		apierr.WriteError(w, apierr.Internal("could not verify code"))
 		return
 	}
 
-	userID, err := upsertUser(r.Context(), h.DB, email)
+	userID, err := upsertUser(r.Context(), h.db, email)
 	if err != nil {
+		log.Printf("auth: upsert user for %s: %v", email, err)
 		apierr.WriteError(w, apierr.Internal("could not create account"))
 		return
 	}
 
-	sessionID, err := createSession(r.Context(), h.DB, userID)
+	sessionID, err := createSession(r.Context(), h.db, userID)
 	if err != nil {
+		log.Printf("auth: create session for user %d: %v", userID, err)
 		apierr.WriteError(w, apierr.Internal("could not create session"))
 		return
 	}
@@ -105,7 +122,7 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 // Logout handles POST /api/auth/logout.
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	if cookie, err := r.Cookie(sessionCookie); err == nil {
-		_ = deleteSession(r.Context(), h.DB, cookie.Value)
+		_ = deleteSession(r.Context(), h.db, cookie.Value)
 	}
 	clearSessionCookie(w)
 	apierr.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
@@ -122,7 +139,7 @@ func (h *Handler) Middleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		userID, ok, err := lookupSession(r.Context(), h.DB, cookie.Value)
+		userID, ok, err := lookupSession(r.Context(), h.db, cookie.Value)
 		if err != nil || !ok {
 			next.ServeHTTP(w, r)
 			return
