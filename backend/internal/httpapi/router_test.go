@@ -1,14 +1,20 @@
 package httpapi_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"needtobuy/internal/auth"
 	"needtobuy/internal/db"
 	"needtobuy/internal/dbtest"
 	"needtobuy/internal/httpapi"
 )
+
+type noopMailer struct{}
+
+func (noopMailer) SendOTP(_ context.Context, _ string, _ string) error { return nil }
 
 func TestHealthz_OK(t *testing.T) {
 	dsn := dbtest.DSN(t)
@@ -19,7 +25,8 @@ func TestHealthz_OK(t *testing.T) {
 	}
 	defer conn.Close()
 
-	router := httpapi.NewRouter(conn)
+	authHandler := auth.NewHandler(conn, noopMailer{}, "test-pepper")
+	router := httpapi.NewRouter(conn, authHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -37,9 +44,10 @@ func TestHealthz_DatabaseDown(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Connect() error = %v", err)
 	}
+	authHandler := auth.NewHandler(conn, noopMailer{}, "test-pepper")
 	conn.Close() // force the ping in the handler to fail
 
-	router := httpapi.NewRouter(conn)
+	router := httpapi.NewRouter(conn, authHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()

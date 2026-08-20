@@ -1,3 +1,4 @@
+// Package httpapi implements the top-level HTTP router and health check.
 package httpapi
 
 import (
@@ -6,17 +7,26 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jmoiron/sqlx"
+
+	"needtobuy/internal/apierr"
+	"needtobuy/internal/auth"
 )
 
 // NewRouter builds the top-level chi router. database is used by the
-// health check to verify connectivity; domain packages register their
-// own routes on the returned handler in later plans.
-func NewRouter(database *sqlx.DB) http.Handler {
+// health check to verify connectivity; authHandler registers the OTP and
+// logout endpoints and its Middleware runs on every request so downstream
+// handlers can read the authenticated parent via auth.UserID.
+func NewRouter(database *sqlx.DB, authHandler *auth.Handler) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(authHandler.Middleware)
 
 	r.Get("/healthz", healthHandler(database))
+
+	r.Post("/api/auth/otp/request", authHandler.RequestOTP)
+	r.Post("/api/auth/otp/verify", authHandler.VerifyOTP)
+	r.Post("/api/auth/logout", authHandler.Logout)
 
 	return r
 }
@@ -24,9 +34,9 @@ func NewRouter(database *sqlx.DB) http.Handler {
 func healthHandler(database *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := database.PingContext(r.Context()); err != nil {
-			WriteError(w, Internal("database unavailable"))
+			apierr.WriteError(w, apierr.Internal("database unavailable"))
 			return
 		}
-		WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		apierr.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	}
 }

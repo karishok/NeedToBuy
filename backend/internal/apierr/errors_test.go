@@ -1,14 +1,14 @@
-package httpapi_test
+package apierr_test
 
 import (
 	"net/http"
 	"testing"
 
-	"needtobuy/internal/httpapi"
+	"needtobuy/internal/apierr"
 )
 
 func TestNotFound(t *testing.T) {
-	err := httpapi.NotFound("child")
+	err := apierr.NotFound("child")
 
 	if err.Code != "not_found" {
 		t.Errorf("Code = %q, want %q", err.Code, "not_found")
@@ -22,7 +22,7 @@ func TestNotFound(t *testing.T) {
 }
 
 func TestBadRequest(t *testing.T) {
-	err := httpapi.BadRequest("email is required")
+	err := apierr.BadRequest("email is required")
 
 	if err.Code != "bad_request" {
 		t.Errorf("Code = %q, want %q", err.Code, "bad_request")
@@ -33,7 +33,7 @@ func TestBadRequest(t *testing.T) {
 }
 
 func TestInternal(t *testing.T) {
-	err := httpapi.Internal("database unavailable")
+	err := apierr.Internal("database unavailable")
 
 	if err.Code != "internal" {
 		t.Errorf("Code = %q, want %q", err.Code, "internal")
