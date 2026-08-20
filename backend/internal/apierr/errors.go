@@ -12,6 +12,7 @@ type Error struct {
 	HTTPStatus int    `json:"-"`
 }
 
+// Error returns the error message.
 func (e *Error) Error() string { return e.Message }
 
 // NotFound builds a 404 error for a missing resource named what
