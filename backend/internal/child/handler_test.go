@@ -105,6 +105,20 @@ func TestCreate_ValidBody_Returns201(t *testing.T) {
 	}
 }
 
+func TestCreate_NoSession_Unauthorized(t *testing.T) {
+	env := newTestEnv(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/children",
+		strings.NewReader(`{"name":"Тимофей","birth_date":"2024-03-15","consent":true}`))
+	// No login, no cookie: request has no authenticated session.
+
+	rec := env.serve(env.childHandler.Create, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusUnauthorized, rec.Body.String())
+	}
+}
+
 func TestCreate_NoConsent_BadRequest(t *testing.T) {
 	env := newTestEnv(t)
 	cookie := env.login(t, "parent@example.com")

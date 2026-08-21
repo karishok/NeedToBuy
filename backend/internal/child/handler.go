@@ -24,6 +24,15 @@ func NewHandler(database auth.Querier) *Handler {
 	return &Handler{db: database}
 }
 
+// unauthorized builds a 401 error for a request with no authenticated
+// session. apierr has no exported constructor for this (same situation
+// the auth package solved with its own local, unexported one), so this
+// package defines its own too — defense-in-depth alongside whatever
+// auth-required middleware the router applies.
+func unauthorized(message string) *apierr.Error {
+	return &apierr.Error{Code: "unauthorized", Message: message, HTTPStatus: http.StatusUnauthorized}
+}
+
 type createBody struct {
 	Name      string `json:"name"`
 	BirthDate string `json:"birth_date"`
@@ -32,7 +41,11 @@ type createBody struct {
 
 // Create handles POST /api/children.
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	parentID, _ := auth.UserID(r.Context())
+	parentID, ok := auth.UserID(r.Context())
+	if !ok {
+		apierr.WriteError(w, unauthorized("login required"))
+		return
+	}
 
 	var body createBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -65,7 +78,11 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 // List handles GET /api/children.
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
-	parentID, _ := auth.UserID(r.Context())
+	parentID, ok := auth.UserID(r.Context())
+	if !ok {
+		apierr.WriteError(w, unauthorized("login required"))
+		return
+	}
 
 	rows, err := listChildren(r.Context(), h.db, parentID)
 	if err != nil {
@@ -87,7 +104,11 @@ type updateBody struct {
 
 // Update handles PATCH /api/children/{id}.
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
-	parentID, _ := auth.UserID(r.Context())
+	parentID, ok := auth.UserID(r.Context())
+	if !ok {
+		apierr.WriteError(w, unauthorized("login required"))
+		return
+	}
 	id, err := parseID(r)
 	if err != nil {
 		apierr.WriteError(w, apierr.BadRequest("invalid child id"))
@@ -134,7 +155,11 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE /api/children/{id}.
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
-	parentID, _ := auth.UserID(r.Context())
+	parentID, ok := auth.UserID(r.Context())
+	if !ok {
+		apierr.WriteError(w, unauthorized("login required"))
+		return
+	}
 	id, err := parseID(r)
 	if err != nil {
 		apierr.WriteError(w, apierr.BadRequest("invalid child id"))
