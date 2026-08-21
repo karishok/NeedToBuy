@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 const maxNameLength = 100
@@ -14,7 +15,7 @@ func validateName(name string) (string, error) {
 	if trimmed == "" {
 		return "", errors.New("name is required")
 	}
-	if len(trimmed) > maxNameLength {
+	if utf8.RuneCountInString(trimmed) > maxNameLength {
 		return "", errors.New("name must be at most 100 characters")
 	}
 	return trimmed, nil

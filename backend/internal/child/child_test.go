@@ -3,6 +3,7 @@ package child
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -161,6 +162,16 @@ func TestValidateName(t *testing.T) {
 	}
 	if _, err := validateName(string(tooLong)); err == nil {
 		t.Error("validateName() with 101 chars error = nil, want error")
+	}
+	// Test 100-rune Cyrillic string (should be accepted)
+	cyrillic100 := strings.Repeat("Т", 100)
+	if _, err := validateName(cyrillic100); err != nil {
+		t.Fatalf("validateName() with 100 Cyrillic runes error = %v, want no error", err)
+	}
+	// Test 101-rune Cyrillic string (should be rejected)
+	cyrillic101 := strings.Repeat("Т", 101)
+	if _, err := validateName(cyrillic101); err == nil {
+		t.Error("validateName() with 101 Cyrillic runes error = nil, want error")
 	}
 }
 
