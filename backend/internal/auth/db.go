@@ -15,5 +15,6 @@ import (
 // to implement it themselves or assert `var _ auth.Querier = someType{}`.
 type Querier interface {
 	GetContext(ctx context.Context, dest any, query string, args ...any) error
+	SelectContext(ctx context.Context, dest any, query string, args ...any) error
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }

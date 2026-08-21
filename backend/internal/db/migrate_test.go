@@ -86,3 +86,25 @@ func TestMigrate_CreatesSessionsTable(t *testing.T) {
 		t.Fatalf("expected sessions table to exist, got %q", tableName)
 	}
 }
+
+func TestMigrate_CreatesChildrenTable(t *testing.T) {
+	dsn := dbtest.DSN(t)
+
+	if err := db.Migrate(dsn); err != nil {
+		t.Fatalf("Migrate() error = %v", err)
+	}
+
+	conn, err := sql.Open("pgx", dsn)
+	if err != nil {
+		t.Fatalf("sql.Open() error = %v", err)
+	}
+	defer conn.Close()
+
+	var tableName string
+	if err := conn.QueryRow("SELECT to_regclass('public.children')::text").Scan(&tableName); err != nil {
+		t.Fatalf("query error = %v", err)
+	}
+	if tableName != "children" {
+		t.Fatalf("expected children table to exist, got %q", tableName)
+	}
+}
