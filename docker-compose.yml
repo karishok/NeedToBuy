@@ -21,5 +21,30 @@ services:
       - "1080:1080" # web UI to read caught OTP mail
       - "1025:1025" # SMTP_ADDR default points here
 
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://needtobuy:needtobuy@postgres:5432/needtobuy?sslmode=disable
+      SMTP_ADDR: mailcatcher:1025
+      SMTP_FROM: no-reply@needtobuy.local
+      OTP_PEPPER: dev-insecure-pepper-change-me
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailcatcher:
+        condition: service_started
+
+  frontend:
+    build: ./frontend
+    environment:
+      BACKEND_PROXY_TARGET: http://backend:8080
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
 volumes:
   pgdata:
