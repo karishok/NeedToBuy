@@ -68,6 +68,7 @@ export interface CatalogItem {
   category: string
   title: string
   marketplace_search_url: string
+  image_url: string | null
 }
 
 export function getCatalog(params: { ageRange?: string; category?: string }): Promise<CatalogItem[]> {

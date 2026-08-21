@@ -14,6 +14,14 @@ const SEED_ITEM = {
   category: 'toys',
   title: 'Сортер с крупными деталями',
   marketplace_search_url: 'https://www.ozon.ru/search/?text=сортер',
+  image_url: null,
+}
+
+const SEED_ITEM_WITH_IMAGE = {
+  ...SEED_ITEM,
+  id: 2,
+  title: 'Пирамидка с крупными кольцами',
+  image_url: 'https://example.com/pyramid.jpg',
 }
 
 describe('CatalogPage', () => {
@@ -50,5 +58,19 @@ describe('CatalogPage', () => {
     await user.click(screen.getByRole('radio', { name: 'Игрушки' }))
 
     await waitFor(() => expect(getCatalog).toHaveBeenCalledWith({ ageRange: undefined, category: 'toys' }))
+  })
+
+  it('renders a photo when the item has an image_url', async () => {
+    vi.spyOn(client, 'getCatalog').mockResolvedValue([SEED_ITEM_WITH_IMAGE])
+    render(<CatalogPage />)
+    const image = await screen.findByRole('img', { name: SEED_ITEM_WITH_IMAGE.title })
+    expect(image).toHaveAttribute('src', SEED_ITEM_WITH_IMAGE.image_url)
+  })
+
+  it('renders no photo when the item has no image_url', async () => {
+    vi.spyOn(client, 'getCatalog').mockResolvedValue([SEED_ITEM])
+    render(<CatalogPage />)
+    await waitFor(() => expect(screen.getByText(SEED_ITEM.title)).toBeInTheDocument())
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 })

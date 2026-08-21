@@ -80,6 +80,9 @@ export function CatalogPage() {
       <div className="catalog-grid">
         {items.map((item) => (
           <div key={item.id} className="card elev-sm">
+            {item.image_url ? (
+              <img className="catalog-card-image" src={item.image_url} alt={item.title} />
+            ) : null}
             <div className="catalog-card-tags">
               <span className="tag tag-neutral">{item.age_range_code}</span>
               <span className="tag tag-outline">{CATEGORY_LABELS[item.category] ?? item.category}</span>
