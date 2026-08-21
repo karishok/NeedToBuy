@@ -28,7 +28,9 @@ func parseBirthDate(s string) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, errors.New("birth_date must be a valid date (YYYY-MM-DD)")
 	}
-	if d.After(time.Now()) {
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	if d.After(today) {
 		return time.Time{}, errors.New("birth_date cannot be in the future")
 	}
 	return d, nil
