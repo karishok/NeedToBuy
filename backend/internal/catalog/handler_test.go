@@ -55,6 +55,38 @@ func TestList_InvalidCategory_BadRequest(t *testing.T) {
 	}
 }
 
+func TestList_NoFilters_ImageURLIsNullInResponse(t *testing.T) {
+	tx := dbtest.Tx(t)
+	h := NewHandler(tx)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/catalog", nil)
+	rec := httptest.NewRecorder()
+	h.List(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body = %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	var items []map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &items); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(items) == 0 {
+		t.Fatal("expected seeded catalog items, got none")
+	}
+	for _, item := range items {
+		// The "image_url" key must be present (not omitted) so the frontend
+		// can distinguish "no photo yet" (null) from a field that doesn't
+		// exist at all. Seed data has no photos, so every value is null.
+		imageURL, ok := item["image_url"]
+		if !ok {
+			t.Fatalf("item %v missing image_url key entirely", item)
+		}
+		if imageURL != nil {
+			t.Fatalf("item image_url = %v, want null (seed data has no photos)", imageURL)
+		}
+	}
+}
+
 func TestList_ValidFilters_AppliesBoth(t *testing.T) {
 	tx := dbtest.Tx(t)
 	h := NewHandler(tx)

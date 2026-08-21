@@ -56,6 +56,27 @@ func TestListCatalogItems_FiltersByCategory(t *testing.T) {
 	}
 }
 
+func TestListCatalogItems_ImageURLIsNullForSeedData(t *testing.T) {
+	tx := dbtest.Tx(t)
+	ctx := context.Background()
+
+	rows, err := listCatalogItems(ctx, tx, "", "")
+	if err != nil {
+		t.Fatalf("listCatalogItems() error = %v", err)
+	}
+	if len(rows) == 0 {
+		t.Fatal("expected seeded catalog items, got none")
+	}
+	// The seed migrations never populated image_url — this scans a NULL
+	// column into a nullable field without erroring, and confirms the
+	// zero-value we can expect toResponse to map to nil.
+	for _, r := range rows {
+		if r.ImageURL.Valid {
+			t.Fatalf("row %d ImageURL = %+v, want NULL (no seed row has a photo yet)", r.ID, r.ImageURL)
+		}
+	}
+}
+
 func TestListCatalogItems_FiltersByBoth_NoMatch_ReturnsEmpty(t *testing.T) {
 	tx := dbtest.Tx(t)
 	ctx := context.Background()
