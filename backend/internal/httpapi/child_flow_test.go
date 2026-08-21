@@ -60,7 +60,7 @@ func TestChildFlow_CreateListUpdateDelete_EndToEnd(t *testing.T) {
 
 	// Create a child.
 	createReq := httptest.NewRequest(http.MethodPost, "/api/children",
-		strings.NewReader(`{"name":"Тимофей","birth_date":"2024-03-15","consent":true}`))
+		strings.NewReader(`{"name":"Тимофей","birth_date":"2000-01-01","consent":true}`))
 	createReq.AddCookie(sessionCookie)
 	createRec := httptest.NewRecorder()
 	router.ServeHTTP(createRec, createReq)
@@ -72,8 +72,11 @@ func TestChildFlow_CreateListUpdateDelete_EndToEnd(t *testing.T) {
 		t.Fatalf("unmarshal create response: %v", err)
 	}
 	id := int64(created["id"].(float64))
-	if created["age_range_code"] == "" {
-		t.Fatal("age_range_code is empty")
+	if created["birth_date"] != "2000-01-01" {
+		t.Fatalf("birth_date = %v, want 2000-01-01", created["birth_date"])
+	}
+	if created["age_range_code"] != "12y+" {
+		t.Fatalf("age_range_code = %v, want 12y+", created["age_range_code"])
 	}
 
 	// List: the new child appears.
