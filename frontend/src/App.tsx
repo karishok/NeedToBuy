@@ -2,8 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
 import { useAuth } from './auth/useAuth'
 import { LoginPage } from './auth/LoginPage'
-import { PlaceholderHome } from './auth/PlaceholderHome'
-import { RequireAuth } from './auth/RequireAuth'
+import { AppNav } from './components/AppNav'
+import { CatalogPage } from './catalog/CatalogPage'
 
 function LoginRoute() {
   const { session } = useAuth()
@@ -19,9 +19,10 @@ function AppRoutes() {
       <Route
         path="/"
         element={
-          <RequireAuth>
-            <PlaceholderHome />
-          </RequireAuth>
+          <>
+            <AppNav />
+            <CatalogPage />
+          </>
         }
       />
     </Routes>

@@ -10,8 +10,9 @@ afterEach(() => {
 })
 
 describe('App routing', () => {
-  it('redirects to /login when not authenticated', async () => {
+  it('shows the catalog at / regardless of session state', async () => {
     vi.spyOn(client, 'me').mockRejectedValue(new Error('not logged in'))
+    vi.spyOn(client, 'getCatalog').mockResolvedValue([])
 
     render(
       <MemoryRouter initialEntries={['/']}>
@@ -19,11 +20,25 @@ describe('App routing', () => {
       </MemoryRouter>,
     )
 
-    await waitFor(() => expect(screen.getByLabelText('Email')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Идеи по возрасту')).toBeInTheDocument())
   })
 
-  it('shows the placeholder home when authenticated', async () => {
+  it('shows a login link in the nav when anonymous', async () => {
+    vi.spyOn(client, 'me').mockRejectedValue(new Error('not logged in'))
+    vi.spyOn(client, 'getCatalog').mockResolvedValue([])
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => expect(screen.getByText('Войти')).toBeInTheDocument())
+  })
+
+  it('shows a logout button in the nav when authenticated', async () => {
     vi.spyOn(client, 'me').mockResolvedValue({ email: 'parent@example.com' })
+    vi.spyOn(client, 'getCatalog').mockResolvedValue([])
 
     render(
       <MemoryRouter initialEntries={['/']}>
@@ -31,17 +46,18 @@ describe('App routing', () => {
       </MemoryRouter>,
     )
 
-    await waitFor(() => expect(screen.getByText('Вы вошли как parent@example.com')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Выйти' })).toBeInTheDocument())
   })
 
-  it('logs in successfully and lands on the placeholder home', async () => {
+  it('logs in successfully and lands on the catalog', async () => {
     vi.spyOn(client, 'me').mockRejectedValue(new Error('not logged in'))
+    vi.spyOn(client, 'getCatalog').mockResolvedValue([])
     vi.spyOn(client, 'requestOtp').mockResolvedValue({ status: 'sent' })
     vi.spyOn(client, 'verifyOtp').mockResolvedValue({ status: 'ok' })
     const user = userEvent.setup()
 
     render(
-      <MemoryRouter initialEntries={['/']}>
+      <MemoryRouter initialEntries={['/login']}>
         <App />
       </MemoryRouter>,
     )
@@ -51,13 +67,12 @@ describe('App routing', () => {
     await user.type(await screen.findByLabelText('Код из письма'), '123456')
     await user.click(screen.getByRole('button', { name: 'Подтвердить' }))
 
-    await waitFor(() =>
-      expect(screen.getByText('Вы вошли как parent@example.com')).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByText('Идеи по возрасту')).toBeInTheDocument())
   })
 
-  it('logs out and returns to the login form', async () => {
+  it('logs out and returns to the catalog with a login link', async () => {
     vi.spyOn(client, 'me').mockResolvedValue({ email: 'parent@example.com' })
+    vi.spyOn(client, 'getCatalog').mockResolvedValue([])
     vi.spyOn(client, 'logout').mockResolvedValue({ status: 'ok' })
     const user = userEvent.setup()
 
@@ -69,6 +84,6 @@ describe('App routing', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Выйти' }))
 
-    await waitFor(() => expect(screen.getByLabelText('Email')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Войти')).toBeInTheDocument())
   })
 })
