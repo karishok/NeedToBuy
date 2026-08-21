@@ -49,10 +49,11 @@ var boundaries = []boundary{
 // of asOf — the lower bound of the bucket the child currently falls
 // into. Assumes asOf is not before birthDate.
 func CodeFor(birthDate, asOf time.Time) string {
+	asOfDate := time.Date(asOf.Year(), asOf.Month(), asOf.Day(), 0, 0, 0, 0, time.UTC)
 	code := boundaries[0].code
 	for _, b := range boundaries {
 		boundaryDate := birthDate.AddDate(b.years, b.months, 0)
-		if boundaryDate.After(asOf) {
+		if boundaryDate.After(asOfDate) {
 			break
 		}
 		code = b.code

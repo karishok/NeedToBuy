@@ -10,13 +10,16 @@ import (
 
 	"needtobuy/internal/apierr"
 	"needtobuy/internal/auth"
+	"needtobuy/internal/child"
 )
 
 // NewRouter builds the top-level chi router. database is used by the
-// health check to verify connectivity; authHandler registers the OTP and
-// logout endpoints and its Middleware runs on every request so downstream
-// handlers can read the authenticated parent via auth.UserID.
-func NewRouter(database *sqlx.DB, authHandler *auth.Handler) http.Handler {
+// health check to verify connectivity; authHandler registers the OTP,
+// logout, and me endpoints and its Middleware runs on every request so
+// downstream handlers can read the authenticated parent via
+// auth.UserID; childHandler registers the child-profile CRUD endpoints
+// behind auth.RequireAuth.
+func NewRouter(database *sqlx.DB, authHandler *auth.Handler, childHandler *child.Handler) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -28,6 +31,14 @@ func NewRouter(database *sqlx.DB, authHandler *auth.Handler) http.Handler {
 	r.Post("/api/auth/otp/verify", authHandler.VerifyOTP)
 	r.Post("/api/auth/logout", authHandler.Logout)
 	r.With(auth.RequireAuth).Get("/api/auth/me", authHandler.Me)
+
+	r.Route("/api/children", func(r chi.Router) {
+		r.Use(auth.RequireAuth)
+		r.Post("/", childHandler.Create)
+		r.Get("/", childHandler.List)
+		r.Patch("/{id}", childHandler.Update)
+		r.Delete("/{id}", childHandler.Delete)
+	})
 
 	return r
 }
