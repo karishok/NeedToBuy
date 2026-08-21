@@ -10,6 +10,7 @@ import (
 
 	"needtobuy/internal/apierr"
 	"needtobuy/internal/auth"
+	"needtobuy/internal/catalog"
 	"needtobuy/internal/child"
 )
 
@@ -18,14 +19,16 @@ import (
 // logout, and me endpoints and its Middleware runs on every request so
 // downstream handlers can read the authenticated parent via
 // auth.UserID; childHandler registers the child-profile CRUD endpoints
-// behind auth.RequireAuth.
-func NewRouter(database *sqlx.DB, authHandler *auth.Handler, childHandler *child.Handler) http.Handler {
+// behind auth.RequireAuth; catalogHandler registers the public catalog
+// browsing endpoint — no authentication required, same as /healthz.
+func NewRouter(database *sqlx.DB, authHandler *auth.Handler, childHandler *child.Handler, catalogHandler *catalog.Handler) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(authHandler.Middleware)
 
 	r.Get("/healthz", healthHandler(database))
+	r.Get("/api/catalog", catalogHandler.List)
 
 	r.Post("/api/auth/otp/request", authHandler.RequestOTP)
 	r.Post("/api/auth/otp/verify", authHandler.VerifyOTP)

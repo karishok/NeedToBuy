@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"needtobuy/internal/auth"
+	"needtobuy/internal/catalog"
 	"needtobuy/internal/child"
 	"needtobuy/internal/db"
 	"needtobuy/internal/dbtest"
@@ -28,7 +29,8 @@ func TestHealthz_OK(t *testing.T) {
 
 	authHandler := auth.NewHandler(conn, noopMailer{}, "test-pepper")
 	childHandler := child.NewHandler(conn)
-	router := httpapi.NewRouter(conn, authHandler, childHandler)
+	catalogHandler := catalog.NewHandler(conn)
+	router := httpapi.NewRouter(conn, authHandler, childHandler, catalogHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -48,9 +50,10 @@ func TestHealthz_DatabaseDown(t *testing.T) {
 	}
 	authHandler := auth.NewHandler(conn, noopMailer{}, "test-pepper")
 	childHandler := child.NewHandler(conn)
+	catalogHandler := catalog.NewHandler(conn)
 	conn.Close() // force the ping in the handler to fail
 
-	router := httpapi.NewRouter(conn, authHandler, childHandler)
+	router := httpapi.NewRouter(conn, authHandler, childHandler, catalogHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()

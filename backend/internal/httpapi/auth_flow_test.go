@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"needtobuy/internal/auth"
+	"needtobuy/internal/catalog"
 	"needtobuy/internal/child"
 	"needtobuy/internal/db"
 	"needtobuy/internal/dbtest"
@@ -47,7 +48,8 @@ func TestAuthFlow_RequestVerifyLogout_EndToEnd(t *testing.T) {
 	mailer := &capturingMailer{}
 	authHandler := auth.NewHandler(conn, mailer, "pepper")
 	childHandler := child.NewHandler(conn)
-	router := httpapi.NewRouter(conn, authHandler, childHandler)
+	catalogHandler := catalog.NewHandler(conn)
+	router := httpapi.NewRouter(conn, authHandler, childHandler, catalogHandler)
 	email := fmt.Sprintf("e2e-%d@example.com", time.Now().UnixNano())
 
 	reqBody := fmt.Sprintf(`{"email":%q}`, email)

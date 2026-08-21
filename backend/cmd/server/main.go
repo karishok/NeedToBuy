@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"needtobuy/internal/auth"
+	"needtobuy/internal/catalog"
 	"needtobuy/internal/child"
 	"needtobuy/internal/config"
 	"needtobuy/internal/db"
@@ -28,8 +29,9 @@ func main() {
 	mailer := auth.SMTPMailer{Addr: cfg.SMTPAddr, From: cfg.SMTPFrom}
 	authHandler := auth.NewHandler(database, mailer, cfg.OTPPepper)
 	childHandler := child.NewHandler(database)
+	catalogHandler := catalog.NewHandler(database)
 
-	router := httpapi.NewRouter(database, authHandler, childHandler)
+	router := httpapi.NewRouter(database, authHandler, childHandler, catalogHandler)
 
 	log.Printf("listening on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
