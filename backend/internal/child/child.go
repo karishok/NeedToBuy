@@ -69,26 +69,10 @@ func listChildren(ctx context.Context, db auth.Querier, parentID int64) ([]row, 
 	var rows []row
 	if err := db.SelectContext(ctx, &rows, `
 		SELECT `+childColumns+`
-		FROM children WHERE parent_id = $1 ORDER BY created_at`, parentID); err != nil {
+		FROM children WHERE parent_id = $1 ORDER BY created_at, id`, parentID); err != nil {
 		return nil, fmt.Errorf("child: list: %w", err)
 	}
 	return rows, nil
-}
-
-// getChild returns a single child owned by parentID. Returns errNotFound
-// if it doesn't exist or belongs to someone else.
-func getChild(ctx context.Context, db auth.Querier, parentID, id int64) (row, error) {
-	var r row
-	err := db.GetContext(ctx, &r, `
-		SELECT `+childColumns+`
-		FROM children WHERE id = $1 AND parent_id = $2`, id, parentID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return row{}, errNotFound
-	}
-	if err != nil {
-		return row{}, fmt.Errorf("child: get: %w", err)
-	}
-	return r, nil
 }
 
 // updateChild applies a partial update (name and/or birth date, whichever
@@ -109,21 +93,18 @@ func updateChild(ctx context.Context, db auth.Querier, parentID, id int64, name 
 		argN++
 	}
 	args = append(args, id, parentID)
-	query := fmt.Sprintf(`UPDATE children SET %s WHERE id = $%d AND parent_id = $%d`,
+	query := fmt.Sprintf(`UPDATE children SET %s WHERE id = $%d AND parent_id = $%d RETURNING `+childColumns,
 		strings.Join(setClauses, ", "), argN, argN+1)
 
-	res, err := db.ExecContext(ctx, query, args...)
+	var r row
+	err := db.GetContext(ctx, &r, query, args...)
+	if errors.Is(err, sql.ErrNoRows) {
+		return row{}, errNotFound
+	}
 	if err != nil {
 		return row{}, fmt.Errorf("child: update: %w", err)
 	}
-	n, err := res.RowsAffected()
-	if err != nil {
-		return row{}, fmt.Errorf("child: update rows affected: %w", err)
-	}
-	if n == 0 {
-		return row{}, errNotFound
-	}
-	return getChild(ctx, db, parentID, id)
+	return r, nil
 }
 
 // deleteChild removes a child owned by parentID. Returns errNotFound if
