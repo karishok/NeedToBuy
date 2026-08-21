@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Select } from '../components/Select'
 import { Segmented } from '../components/Segmented'
 import { getCatalog, ApiError, type CatalogItem } from '../api/client'
-import { AGE_GROUPS } from './ageGroups'
+import { AGE_GROUPS, AGE_LABELS } from './ageGroups'
 
 const CATEGORY_OPTIONS = [
   { value: '', label: 'Все' },
@@ -51,7 +51,7 @@ export function CatalogPage() {
     <div className="catalog-content">
       <h1>Идеи по возрасту</h1>
       <p>Курируем вручную — ссылки ведут на поиск в Ozon, а не на конкретный товар.</p>
-      <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      <div className="catalog-filters">
         <Select
           id="age-filter"
           label="Возраст"
@@ -61,7 +61,7 @@ export function CatalogPage() {
             { label: 'Все возраста', options: [{ value: '', label: 'Все' }] },
             ...AGE_GROUPS.map((group) => ({
               label: group.label,
-              options: group.codes.map((code) => ({ value: code, label: code })),
+              options: group.codes.map((code) => ({ value: code, label: AGE_LABELS[code] ?? code })),
             })),
           ]}
         />
@@ -80,7 +80,7 @@ export function CatalogPage() {
       <div className="catalog-grid">
         {items.map((item) => (
           <div key={item.id} className="card elev-sm">
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <div className="catalog-card-tags">
               <span className="tag tag-neutral">{item.age_range_code}</span>
               <span className="tag tag-outline">{CATEGORY_LABELS[item.category] ?? item.category}</span>
             </div>

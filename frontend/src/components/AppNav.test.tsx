@@ -33,4 +33,17 @@ describe('AppNav', () => {
     )
     await waitFor(() => expect(screen.getByRole('button', { name: 'Выйти' })).toBeInTheDocument())
   })
+
+  it('shows neither login nor logout while the session is loading', () => {
+    vi.spyOn(client, 'me').mockReturnValue(new Promise(() => {}))
+    render(
+      <MemoryRouter>
+        <AuthProvider>
+          <AppNav />
+        </AuthProvider>
+      </MemoryRouter>,
+    )
+    expect(screen.queryByText('Войти')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Выйти' })).toBeNull()
+  })
 })

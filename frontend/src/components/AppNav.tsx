@@ -14,7 +14,7 @@ export function AppNav() {
   return (
     <nav className="nav">
       <span className="nav-brand">Нужняшки</span>
-      <span style={{ marginLeft: 'auto' }}>
+      <span>
         {session === 'loading' ? null : session === null ? (
           <Link to="/login">Войти</Link>
         ) : (
