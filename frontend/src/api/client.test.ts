@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { requestOtp, verifyOtp, me } from './client'
+import { requestOtp, verifyOtp, me, getCatalog } from './client'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -61,5 +61,36 @@ describe('network errors', () => {
       vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
     )
     await expect(me()).rejects.toThrow('Failed to fetch')
+  })
+})
+
+describe('getCatalog', () => {
+  it('requests the catalog with no query params when none are given', async () => {
+    const fetchMock = mockFetch(200, [])
+    await getCatalog({})
+    expect(fetchMock).toHaveBeenCalledWith('/api/catalog', expect.objectContaining({ credentials: 'include' }))
+  })
+
+  it('includes age_range and category as query params when given', async () => {
+    const fetchMock = mockFetch(200, [])
+    await getCatalog({ ageRange: '18m', category: 'toys' })
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/catalog?age_range=18m&category=toys',
+      expect.objectContaining({ credentials: 'include' }),
+    )
+  })
+
+  it('resolves with the catalog items', async () => {
+    const items = [
+      {
+        id: 1,
+        age_range_code: '18m',
+        category: 'toys',
+        title: 'Сортер',
+        marketplace_search_url: 'https://example.com',
+      },
+    ]
+    mockFetch(200, items)
+    await expect(getCatalog({})).resolves.toEqual(items)
   })
 })

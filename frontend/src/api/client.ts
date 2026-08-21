@@ -61,3 +61,19 @@ export function logout(): Promise<{ status: string }> {
 export function me(): Promise<{ email: string }> {
   return request('/api/auth/me')
 }
+
+export interface CatalogItem {
+  id: number
+  age_range_code: string
+  category: string
+  title: string
+  marketplace_search_url: string
+}
+
+export function getCatalog(params: { ageRange?: string; category?: string }): Promise<CatalogItem[]> {
+  const query = new URLSearchParams()
+  if (params.ageRange) query.set('age_range', params.ageRange)
+  if (params.category) query.set('category', params.category)
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  return request(`/api/catalog${suffix}`)
+}
