@@ -42,3 +42,18 @@ func TestCodeFor(t *testing.T) {
 		})
 	}
 }
+
+func TestIsValid(t *testing.T) {
+	valid := []string{"0m", "18m", "3y", "12y+"}
+	for _, code := range valid {
+		if !agerange.IsValid(code) {
+			t.Errorf("IsValid(%q) = false, want true", code)
+		}
+	}
+	invalid := []string{"", "13y", "0y", "100m", "18M"}
+	for _, code := range invalid {
+		if agerange.IsValid(code) {
+			t.Errorf("IsValid(%q) = true, want false", code)
+		}
+	}
+}

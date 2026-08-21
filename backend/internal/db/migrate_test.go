@@ -108,3 +108,33 @@ func TestMigrate_CreatesChildrenTable(t *testing.T) {
 		t.Fatalf("expected children table to exist, got %q", tableName)
 	}
 }
+
+func TestMigrate_CreatesCatalogItemsTable(t *testing.T) {
+	dsn := dbtest.DSN(t)
+
+	if err := db.Migrate(dsn); err != nil {
+		t.Fatalf("Migrate() error = %v", err)
+	}
+
+	conn, err := sql.Open("pgx", dsn)
+	if err != nil {
+		t.Fatalf("sql.Open() error = %v", err)
+	}
+	defer conn.Close()
+
+	var tableName string
+	if err := conn.QueryRow("SELECT to_regclass('public.catalog_items')::text").Scan(&tableName); err != nil {
+		t.Fatalf("query error = %v", err)
+	}
+	if tableName != "catalog_items" {
+		t.Fatalf("expected catalog_items table to exist, got %q", tableName)
+	}
+
+	var count int
+	if err := conn.QueryRow("SELECT count(*) FROM catalog_items").Scan(&count); err != nil {
+		t.Fatalf("count query error = %v", err)
+	}
+	if count == 0 {
+		t.Fatal("expected seed data in catalog_items, got 0 rows")
+	}
+}

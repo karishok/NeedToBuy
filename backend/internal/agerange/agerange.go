@@ -60,3 +60,14 @@ func CodeFor(birthDate, asOf time.Time) string {
 	}
 	return code
 }
+
+// IsValid reports whether code is one of the fixed age-bucket codes this
+// package knows about.
+func IsValid(code string) bool {
+	for _, b := range boundaries {
+		if b.code == code {
+			return true
+		}
+	}
+	return false
+}
