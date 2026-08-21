@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"needtobuy/internal/auth"
+	"needtobuy/internal/child"
 	"needtobuy/internal/db"
 	"needtobuy/internal/dbtest"
 	"needtobuy/internal/httpapi"
@@ -26,7 +27,8 @@ func TestHealthz_OK(t *testing.T) {
 	defer conn.Close()
 
 	authHandler := auth.NewHandler(conn, noopMailer{}, "test-pepper")
-	router := httpapi.NewRouter(conn, authHandler)
+	childHandler := child.NewHandler(conn)
+	router := httpapi.NewRouter(conn, authHandler, childHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -45,9 +47,10 @@ func TestHealthz_DatabaseDown(t *testing.T) {
 		t.Fatalf("Connect() error = %v", err)
 	}
 	authHandler := auth.NewHandler(conn, noopMailer{}, "test-pepper")
+	childHandler := child.NewHandler(conn)
 	conn.Close() // force the ping in the handler to fail
 
-	router := httpapi.NewRouter(conn, authHandler)
+	router := httpapi.NewRouter(conn, authHandler, childHandler)
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
