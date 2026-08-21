@@ -56,7 +56,7 @@ func TestListCatalogItems_FiltersByCategory(t *testing.T) {
 	}
 }
 
-func TestListCatalogItems_ImageURLIsNullForSeedData(t *testing.T) {
+func TestListCatalogItems_ImageURLIsSetForSeedData(t *testing.T) {
 	tx := dbtest.Tx(t)
 	ctx := context.Background()
 
@@ -67,12 +67,13 @@ func TestListCatalogItems_ImageURLIsNullForSeedData(t *testing.T) {
 	if len(rows) == 0 {
 		t.Fatal("expected seeded catalog items, got none")
 	}
-	// The seed migrations never populated image_url — this scans a NULL
-	// column into a nullable field without erroring, and confirms the
-	// zero-value we can expect toResponse to map to nil.
+	// Migration 000007 back-fills a single placeholder photo onto every
+	// seed row, purely so the catalog UI is recognizable in development
+	// before real curated photos exist — this confirms the nullable
+	// column scans a non-NULL value without erroring.
 	for _, r := range rows {
-		if r.ImageURL.Valid {
-			t.Fatalf("row %d ImageURL = %+v, want NULL (no seed row has a photo yet)", r.ID, r.ImageURL)
+		if !r.ImageURL.Valid || r.ImageURL.String == "" {
+			t.Fatalf("row %d ImageURL = %+v, want a non-empty placeholder", r.ID, r.ImageURL)
 		}
 	}
 }
