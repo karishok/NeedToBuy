@@ -40,8 +40,8 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	responses := make([]itemResponse, len(rows))
-	for i, row := range rows {
-		responses[i] = toResponse(row)
+	for i, item := range rows {
+		responses[i] = toResponse(item)
 	}
 	apierr.WriteJSON(w, http.StatusOK, responses)
 }

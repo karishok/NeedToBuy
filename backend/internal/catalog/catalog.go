@@ -31,7 +31,6 @@ func listCatalogItems(ctx context.Context, db auth.Querier, ageRange, category s
 	if category != "" {
 		query += fmt.Sprintf(" AND category = $%d", argN)
 		args = append(args, category)
-		argN++
 	}
 	query += " ORDER BY id"
 

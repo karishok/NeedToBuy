@@ -70,6 +70,9 @@ func TestList_ValidFilters_AppliesBoth(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &items); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
+	if len(items) == 0 {
+		t.Fatal("expected at least one seeded item at 18m/toys")
+	}
 	for _, item := range items {
 		if item["age_range_code"] != "18m" {
 			t.Fatalf("item age_range_code = %v, want 18m", item["age_range_code"])
